@@ -6,8 +6,8 @@ class Settings():
     def __init__(self):
         self.check_for_file()
         self.settings = self.get_settings()
+        self.time_between_saves = 300
         self.save_settings()
-
     
     def check_for_file(self):
         if not os.path.isfile("guilds.json"):
@@ -65,7 +65,7 @@ class Settings():
         return channel_string[:-2]
 
     def save_settings(self):
-        threading.Timer(2, self.save_settings).start()
+        threading.Timer(self.time_between_saves, self.save_settings).start()
         with open("guilds.json", 'w') as f:
             json.dump(self.settings, f)
 

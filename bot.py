@@ -1,18 +1,19 @@
 import discord
 from discord.ext import commands
 from settings import Settings
+from cache import Cache
 import embed_creator
 import requests
 import json
 import os
 from decouple import config
+import time
 
-settings = None
 
 def determine_prefixes(bot, message):
     return settings.get_prefix(message.guild.id)
 
-
+cache = Cache()
 settings = Settings()
 client = discord.Client()
 bot = commands.Bot(command_prefix=determine_prefixes)
@@ -45,79 +46,111 @@ async def is_disabled(ctx):
 async def help(ctx, *args):
     prefix = await bot.get_prefix(ctx.message)
     if ctx.message.author.guild_permissions.administrator:
-        await ctx.send("<><><><><><><> :grey_question: HyperStats Help :grey_question: <><><><><><><>\n\n Prefix: `" + prefix + "`\n\n`" + prefix + "setprefix {prefix}`: Changes the bot prefix **(admin only)**.\n`" + prefix + "disablechannel`: Disables the bot in the channel this command is used in for non-administrators **(admin only)**.\n`" + prefix + "enablechannel`: Enables the bot in the channel this command is used in for non-administrators **(admin only)**.\n\n`" + prefix + "help`: Displays this menu.\n`" + prefix + "stats {playername} {platform}`: Displays player stats. Platform must be PC, Xbox, or PS.\n`" + prefix + "weapons {playername} {platform}`: Displays weapon stats for a player. Platform must be PC, Xbox, or PS.\n`" + prefix + "hacks {playername} {platform}`: Displays hack stats for a player. Platform must be PC, Xbox, or PS.\n`" + prefix + "best {playername} {platform}`: Displays career best stats for a player (best in one game). Platform must be PC, Xbox, or PS.")
+        await ctx.send("<><><><><><><> :grey_question: HyperStats Help :grey_question: <><><><><><><>\n\n Prefix: `" + prefix + "`\n\n`" + prefix + "setprefix {prefix}`: Changes the bot prefix **(admin only)**.\n`" + prefix + "disablechannel`: Disables the bot in the channel this command is used in for non-administrators **(admin only)**.\n`" + prefix + "enablechannel`: Enables the bot in the channel this command is used in for non-administrators **(admin only)**.\n\n`" + prefix + "help`: Displays this menu.\n\nFor all of the below commands, platform must be either be empty for PC, or one of `PC`, `Xbox` or `PS`.\n\n`" + prefix + "stats {playername} {platform}`: Displays player stats.\n`" + prefix + "weapons {playername} {platform}`: Displays weapon stats for a player.\n`" + prefix + "hacks {playername} {platform}`: Displays hack stats for a player.\n`" + prefix + "best {playername} {platform}`: Displays career best stats for a player (best in one game).")
     else:
-        await ctx.send("<><><><><><><> :grey_question: HyperStats Help :grey_question: <><><><><><><>\n\n Prefix: " + prefix + "\n\n`" + prefix + "help`: Displays this menu.\n`" + prefix + "stats {playername} {platform}`: Displays player stats. Platform must be PC, Xbox, or PS.\n`" + prefix + "weapons {playername} {platform}`: Displays weapon stats for a player. Platform must be PC, Xbox, or PS.\n`" + prefix + "hacks {playername} {platform}`: Displays hack stats for a player. Platform must be PC, Xbox, or PS.\n`" + prefix + "best {playername} {platform}`: Displays career best stats for a player (best in one game). Platform must be PC, Xbox, or PS.")
+        await ctx.send("<><><><><><><> :grey_question: HyperStats Help :grey_question: <><><><><><><>\n\n Prefix: " + prefix + "\n\n`" + prefix + "help`: Displays this menu.\n\nFor all of the below commands, platform must be either be empty for PC, or one of `PC`, `Xbox` or `PS`.\n\n`" + prefix + "stats {playername} {platform}`: Displays player stats.\n`" + prefix + "weapons {playername} {platform}`: Displays weapon stats for a player.\n`" + prefix + "hacks {playername} {platform}`: Displays hack stats for a player.\n`" + prefix + "best {playername} {platform}`: Displays career best stats for a player (best in one game).")
 
 
 @bot.command()
 @commands.check(is_disabled)
 async def stats(ctx, *args):
-    if (len(args) != 2):
-        prefix = await bot.get_prefix(ctx.message)
-        await ctx.send("**:stop_sign: Invalid command!** Correct usage: `" + prefix + "stats {playername} {platform}`. Platform must be either PC, Xbox or PS.")
-        return False
-    else:
+    valid = await check_stats_commands(ctx, "stats", args)
+    if valid:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
-        id = await find_player(status, args[0], args[1])
-        if id:
-            stats = await get_player_stats(status, id["p_name"], id["p_id"])
-            if stats:
-                embed = await embed_creator.create_stats_embed(stats)
-                await status.edit(content="", embed=embed)
+        platform = await determine_platform(status, args)
+        cached = await cache.check_cache(args[0], platform)
+        if cached is None:
+            stats = await manage_stats_commands(ctx, status, args[0], platform)
+            await cache.add_player_to_cache(stats)
+            await cache.update_cache(stats)
+        else:
+            stats = cached
+        if stats:
+            embed = await embed_creator.create_stats_embed(stats)
+            if cached is not None:
+                cached_string = await cache.get_update_string(args[0].lower(), platform)
+                await cache.update_cache(stats)
+                await status.edit(content=cached_string, embed=embed)
+                return
+            else:
+                await cache.update_cache(stats)
+            await status.edit(content="", embed=embed)
 
 
 
 @bot.command()
 @commands.check(is_disabled)
 async def weapons(ctx, *args):
-    if (len(args) != 2):
-        prefix = await bot.get_prefix(ctx.message)
-        await ctx.send("**:stop_sign: Invalid command!** Correct usage: `" + prefix + "weapons {playername} {platform}`. Platform must be either PC, Xbox or PS.")
-        return False
-    else:
+    valid = await check_stats_commands(ctx, "weapons", args)
+    if valid:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
-        id = await find_player(status, args[0], args[1])
-        if id:
-            stats = await get_player_stats(status, id["p_name"], id["p_id"])
-            if stats:
-                embed = await embed_creator.create_weapons_embed(stats)
-                await status.edit(content="", embed=embed)
+        platform = await determine_platform(status, args)
+        cached = await cache.check_cache(args[0], platform)
+        if cached is None:
+            stats = await manage_stats_commands(ctx, status, args[0], platform)
+            await cache.add_player_to_cache(stats)
+            await cache.update_cache(stats)
+        else:
+            stats = cached
+        if stats:
+            embed = await embed_creator.create_weapons_embed(stats)
+            if cached is not None:
+                cached_string = await cache.get_update_string(args[0].lower(), platform)
+                await status.edit(content=cached_string, embed=embed)
+                return
+            else:
+                await cache.update_cache(stats)
+            await status.edit(content="", embed=embed)
 
 
 @bot.command()
 @commands.check(is_disabled)
 async def best(ctx, *args):
-    if (len(args) != 2):
-        prefix = await bot.get_prefix(ctx.message)
-        await ctx.send("**:stop_sign: Invalid command!** Correct usage: `" + prefix + "best {playername} {platform}`. Platform must be either PC, Xbox or PS.")
-        return False
-    else:
+    valid = await check_stats_commands(ctx, "best", args)
+    if valid:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
-        id = await find_player(status, args[0], args[1])
-        if id:
-            stats = await get_player_stats(status, id["p_name"], id["p_id"])
-            if stats:
-                embed = await embed_creator.create_best_embed(stats)
-                await status.edit(content="", embed=embed)
+        platform = await determine_platform(status, args)
+        cached = await cache.check_cache(args[0], platform)
+        if cached is None:
+            stats = await manage_stats_commands(ctx, status, args[0], platform)
+            await cache.add_player_to_cache(stats)
+            await cache.update_cache(stats)
+        else:
+            stats = cached
+        if stats:
+            embed = await embed_creator.create_best_embed(stats)
+            if cached is not None:
+                cached_string = await cache.get_update_string(args[0].lower(), platform)
+                await status.edit(content=cached_string, embed=embed)
+                return
+            else:
+                await cache.update_cache(stats)
+            await status.edit(content="", embed=embed)
 
 
 @bot.command()
 @commands.check(is_disabled)
 async def hacks(ctx, *args):
-    if (len(args) != 2):
-        prefix = await bot.get_prefix(ctx.message)
-        await ctx.send("**:stop_sign: Invalid command!** Correct usage: `" + prefix + "hacks {playername} {platform}`. Platform must be either PC, Xbox or PS.")
-        return False
-    else:
+    valid = await check_stats_commands(ctx, "hacks", args)
+    if valid:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
-        id = await find_player(status, args[0], args[1])
-        if id:
-            stats = await get_player_stats(status, id["p_name"], id["p_id"])
-            if stats:
-                embed = await embed_creator.create_hacks_embed(stats)
-                await status.edit(content="", embed=embed)
-
+        platform = await determine_platform(status, args)
+        cached = await cache.check_cache(args[0], platform)
+        if cached is None:
+            stats = await manage_stats_commands(ctx, status, args[0], platform)
+            await cache.add_player_to_cache(stats)
+            await cache.update_cache(stats)
+        else:
+            stats = cached
+        if stats:
+            embed = await embed_creator.create_hacks_embed(stats)
+            if cached is not None:
+                cached_string = await cache.get_update_string(args[0].lower(), platform)
+                await status.edit(content=cached_string, embed=embed)
+                return
+            else:
+                await cache.update_cache(stats)
+            await status.edit(content="", embed=embed)
 
 @bot.command()
 async def disablechannel(ctx, *args):
@@ -156,25 +189,16 @@ async def listdisabledchannels(ctx, *args):
 
 #################### HELPER ####################
 
-async def find_player(status, playername, platform):
-    print(platform.lower() == "pc")
-    if platform.lower() != "pc" and platform.lower() != "xbox" and platform.lower() != "ps":
-        await status.edit(content=":exclamation: **Invalid platform!** Platform must be `PC`, `Xbox` or `PS`.")
-        return False
-    if platform.lower() == "pc":
-        platform = "uplay"
-    elif platform.lower() == "xbox":
-        platform = "xbl"
-    elif platform.lower() == "ps":
-        platform = "psn"
+async def find_player(status, playername, platform):      
     r = requests.get("https://hypers.apitab.com/search/" + platform + "/" + playername)
     if r.status_code == 200:
-        print(r.json())
-        players = r.json()['players']
-        for _, player in players.items():
-            if player['profile']['p_name'].lower() == playername.lower():
-                return player['profile']
-    await status.edit(content=":exclamation: Failed to find " + playername + " on platform " + platform + "!")
+        if "players" in r.json():
+            players = r.json()['players']
+            if len(players) != 0:
+                for _, player in players.items():
+                    if player['profile']['p_name'].lower() == playername.lower():
+                        return player['profile']
+    await status.edit(content=":exclamation: Failed to find player **" + playername + "**!")
     return False
 
 
@@ -182,12 +206,46 @@ async def get_player_stats(status, playername, player_id):
     await status.edit(content=":hourglass: Retrieving stats for player " + playername + "...")
     r = requests.get("https://hypers.apitab.com/update/" + player_id)
     if r.status_code == 200:
-        return r.json()
+        json_data = r.json()
+        if "found" in json_data:
+            if json_data['found']:
+                return json_data
     else:
+        await status.edit(content=":exclamation: Failed to retrieve stats for **" + playername + "**!")
         return False
 
 
+async def determine_platform(status, args):
+    if len(args) == 1:
+        return "uplay"
+    elif len(args) == 2:
+        platform = args[1]
+        if platform.lower() != "pc" and platform.lower() != "xbox" and platform.lower() != "ps":
+            await status.edit(content=":exclamation: **Invalid platform!** Platform must be `PC`, `Xbox` or `PS`.")
+            return False
+        if platform.lower() == "pc":
+            platform = "uplay"
+        elif platform.lower() == "xbox":
+            platform = "xbl"
+        elif platform.lower() == "ps":
+            platform = "psn"
+        return platform
+
+async def manage_stats_commands(ctx, status, playername, platform):
+    id = await find_player(status, playername, platform)
+    if id:
+        stats = await get_player_stats(status, id["p_name"], id["p_id"])
+        return stats
+
+
+async def check_stats_commands(ctx, command, args):
+    prefix = await bot.get_prefix(ctx.message)
+    if (len(args) != 1 and len(args) != 2):
+            await ctx.send("**:stop_sign: Invalid command!** Correct usage: `" + prefix + command + " {playername} {platform}`. Platform must either be `PC`, `Xbox` or `PS` (or blank for PC).")
+            return False
+    return True
+
 
 if __name__ == "__main__":
-    token = config('HYPERSTATS')
+    token = config('HYPERSTATSTEST')
     bot.run(token)
