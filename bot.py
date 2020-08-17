@@ -203,5 +203,5 @@ async def show_statistics(ctx, status, command, playername, platform):
 
 
 if __name__ == "__main__":
-    token = config('HYPERSTATSTEST')
+    token = config('HYPERSTATS')
     bot.run(token)
