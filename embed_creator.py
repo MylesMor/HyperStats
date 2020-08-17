@@ -1,5 +1,15 @@
 import discord
 
+async def create_embed(name, stats):
+    if name == "best":
+        return await create_best_embed(stats)
+    elif name == "weapons":
+        return await create_weapons_embed(stats)
+    elif name == "stats":
+        return await create_stats_embed(stats)
+    elif name == "hacks":
+        return await create_hacks_embed(stats)
+
 async def create_best_embed(stats):
     embed=discord.Embed(title="", color=0x36393f)
     embed.set_author(name=stats['player']['p_name'] + "'s Career Best Statistics", icon_url="https://mylesmor.dev/images/user.png")

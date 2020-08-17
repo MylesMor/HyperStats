@@ -58,23 +58,7 @@ async def stats(ctx, *args):
     if valid:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
         platform = await determine_platform(status, args)
-        cached = await cache.check_cache(args[0], platform)
-        if cached is None:
-            stats = await manage_stats_commands(ctx, status, args[0], platform)
-            await cache.add_player_to_cache(stats)
-            await cache.update_cache(stats)
-        else:
-            stats = cached
-        if stats:
-            embed = await embed_creator.create_stats_embed(stats)
-            if cached is not None:
-                cached_string = await cache.get_update_string(args[0].lower(), platform)
-                await cache.update_cache(stats)
-                await status.edit(content=cached_string, embed=embed)
-                return
-            else:
-                await cache.update_cache(stats)
-            await status.edit(content="", embed=embed)
+        await show_statistics(ctx, status, "stats", args[0], platform)
 
 
 
@@ -85,22 +69,7 @@ async def weapons(ctx, *args):
     if valid:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
         platform = await determine_platform(status, args)
-        cached = await cache.check_cache(args[0], platform)
-        if cached is None:
-            stats = await manage_stats_commands(ctx, status, args[0], platform)
-            await cache.add_player_to_cache(stats)
-            await cache.update_cache(stats)
-        else:
-            stats = cached
-        if stats:
-            embed = await embed_creator.create_weapons_embed(stats)
-            if cached is not None:
-                cached_string = await cache.get_update_string(args[0].lower(), platform)
-                await status.edit(content=cached_string, embed=embed)
-                return
-            else:
-                await cache.update_cache(stats)
-            await status.edit(content="", embed=embed)
+        await show_statistics(ctx, status, "weapons", args[0], platform)
 
 
 @bot.command()
@@ -110,23 +79,7 @@ async def best(ctx, *args):
     if valid:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
         platform = await determine_platform(status, args)
-        cached = await cache.check_cache(args[0], platform)
-        if cached is None:
-            stats = await manage_stats_commands(ctx, status, args[0], platform)
-            await cache.add_player_to_cache(stats)
-            await cache.update_cache(stats)
-        else:
-            stats = cached
-        if stats:
-            embed = await embed_creator.create_best_embed(stats)
-            if cached is not None:
-                cached_string = await cache.get_update_string(args[0].lower(), platform)
-                await status.edit(content=cached_string, embed=embed)
-                return
-            else:
-                await cache.update_cache(stats)
-            await status.edit(content="", embed=embed)
-
+        await show_statistics(ctx, status, "best", args[0], platform)
 
 @bot.command()
 @commands.check(is_disabled)
@@ -135,22 +88,7 @@ async def hacks(ctx, *args):
     if valid:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
         platform = await determine_platform(status, args)
-        cached = await cache.check_cache(args[0], platform)
-        if cached is None:
-            stats = await manage_stats_commands(ctx, status, args[0], platform)
-            await cache.add_player_to_cache(stats)
-            await cache.update_cache(stats)
-        else:
-            stats = cached
-        if stats:
-            embed = await embed_creator.create_hacks_embed(stats)
-            if cached is not None:
-                cached_string = await cache.get_update_string(args[0].lower(), platform)
-                await status.edit(content=cached_string, embed=embed)
-                return
-            else:
-                await cache.update_cache(stats)
-            await status.edit(content="", embed=embed)
+        await show_statistics(ctx, status, "hacks", args[0], platform)
 
 @bot.command()
 async def disablechannel(ctx, *args):
@@ -244,6 +182,24 @@ async def check_stats_commands(ctx, command, args):
             await ctx.send("**:stop_sign: Invalid command!** Correct usage: `" + prefix + command + " {playername} {platform}`. Platform must either be `PC`, `Xbox` or `PS` (or blank for PC).")
             return False
     return True
+
+async def show_statistics(ctx, status, command, playername, platform):
+    cached = await cache.check_cache(playername, platform)
+    if cached is None:
+        stats = await manage_stats_commands(ctx, status,playername, platform)
+        await cache.add_player_to_cache(stats)
+        await cache.update_cache(stats)
+    else:
+        stats = cached
+    if stats:
+        embed = await embed_creator.create_embed(command, stats)
+        if cached is not None:
+            cached_string = await cache.get_update_string(playername.lower(), platform)
+            await status.edit(content=cached_string, embed=embed)
+            return
+        else:
+            await cache.update_cache(stats)
+        await status.edit(content="", embed=embed)
 
 
 if __name__ == "__main__":
