@@ -128,7 +128,9 @@ async def disablechannel(ctx, *args):
         else:
             disable = await settings.disable_channel(ctx.message.guild.id, ctx.message.channel.id)
             if disable:
-                ctx.send(":white_check_mark: Bot **disabled** in channel for non-administrators.")
+                await ctx.send(":white_check_mark: Bot **disabled** in channel for non-administrators.")
+            else:
+                await ctx.send(":stop_sign: Bot **already disabled** in channel.")
 
 @bot.command()
 async def enablechannel(ctx, *args):
@@ -139,7 +141,9 @@ async def enablechannel(ctx, *args):
         else:
             enable = await settings.enable_channel(ctx.message.guild.id, ctx.message.channel.id)
             if enable:
-                ctx.send(":white_check_mark: Bot **enabled** in channel for non-administrators.")
+                await ctx.send(":white_check_mark: Bot **enabled** in channel for non-administrators.")
+            else:
+                await ctx.send(":stop_sign: Bot **already enabled** in channel.")
 
 @bot.command()
 async def listdisabledchannels(ctx, *args):
