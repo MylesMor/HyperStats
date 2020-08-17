@@ -57,6 +57,13 @@ class Settings():
             return True
         return False
 
+    async def get_disabled_channels(self, guild_id):
+        await self.add_guild_to_settings(guild_id)
+        channel_string = "**Disabled channels:** "
+        for channel in self.settings[str(guild_id)]['disabledchannels']:
+            channel_string += "<#" + str(channel) + ">, "
+        return channel_string[:-2]
+
     def save_settings(self):
         threading.Timer(2, self.save_settings).start()
         with open("guilds.json", 'w') as f:

@@ -4,12 +4,14 @@ from settings import Settings
 import embed_creator
 import requests
 import json
-import os.path
+import os
+from decouple import config
 
 settings = None
 
 def determine_prefixes(bot, message):
     return settings.get_prefix(message.guild.id)
+
 
 settings = Settings()
 client = discord.Client()
@@ -34,16 +36,18 @@ async def setprefix(ctx, *args):
 #################### COMMANDS ####################
 
 async def is_disabled(ctx):
-    return not await settings.check_disabled_channel(ctx.message.guild.id, ctx.message.channel.id)
+    admin = ctx.message.author.guild_permissions.administrator
+    disabled = await settings.check_disabled_channel(ctx.message.guild.id, ctx.message.channel.id)
+    return not disabled or admin
 
 @bot.command()
 @commands.check(is_disabled)
 async def help(ctx, *args):
     prefix = await bot.get_prefix(ctx.message)
     if ctx.message.author.guild_permissions.administrator:
-        await ctx.send("-------------- :grey_question: HyperStats Help :grey_question: --------------\n\n Prefix: `" + prefix + "`\n\n`" + prefix + "help`: Displays this menu.\n`" + prefix + "setprefix {prefix}`: Changes the bot prefix **(admin only)**.\n`" + prefix + "stats {playername} {platform}`: Displays player stats. Platform must be PC, Xbox, or PS.\n`" + prefix + "weapons {playername} {platform}`: Displays weapon stats for a player. Platform must be PC, Xbox, or PS.\n`" + prefix + "hacks {playername} {platform}`: Displays hack stats for a player. Platform must be PC, Xbox, or PS.\n`" + prefix + "best {playername} {platform}`: Displays career best stats for a player (best in one game). Platform must be PC, Xbox, or PS.")
+        await ctx.send("<><><><><><><> :grey_question: HyperStats Help :grey_question: <><><><><><><>\n\n Prefix: `" + prefix + "`\n\n`" + prefix + "setprefix {prefix}`: Changes the bot prefix **(admin only)**.\n`" + prefix + "disablechannel`: Disables the bot in the channel this command is used in for non-administrators **(admin only)**.\n`" + prefix + "enablechannel`: Enables the bot in the channel this command is used in for non-administrators **(admin only)**.\n\n`" + prefix + "help`: Displays this menu.\n`" + prefix + "stats {playername} {platform}`: Displays player stats. Platform must be PC, Xbox, or PS.\n`" + prefix + "weapons {playername} {platform}`: Displays weapon stats for a player. Platform must be PC, Xbox, or PS.\n`" + prefix + "hacks {playername} {platform}`: Displays hack stats for a player. Platform must be PC, Xbox, or PS.\n`" + prefix + "best {playername} {platform}`: Displays career best stats for a player (best in one game). Platform must be PC, Xbox, or PS.")
     else:
-        await ctx.send("-------------- :grey_question: HyperStats Help :grey_question: --------------\n\n Prefix: " + prefix + "\n\n`" + prefix + "help`: Displays this menu.\n`" + prefix + "stats {playername} {platform}`: Displays player stats. Platform must be PC, Xbox, or PS.\n`" + prefix + "weapons {playername} {platform}`: Displays weapon stats for a player. Platform must be PC, Xbox, or PS.\n`" + prefix + "hacks {playername} {platform}`: Displays hack stats for a player. Platform must be PC, Xbox, or PS.\n`" + prefix + "best {playername} {platform}`: Displays career best stats for a player (best in one game). Platform must be PC, Xbox, or PS.")
+        await ctx.send("<><><><><><><> :grey_question: HyperStats Help :grey_question: <><><><><><><>\n\n Prefix: " + prefix + "\n\n`" + prefix + "help`: Displays this menu.\n`" + prefix + "stats {playername} {platform}`: Displays player stats. Platform must be PC, Xbox, or PS.\n`" + prefix + "weapons {playername} {platform}`: Displays weapon stats for a player. Platform must be PC, Xbox, or PS.\n`" + prefix + "hacks {playername} {platform}`: Displays hack stats for a player. Platform must be PC, Xbox, or PS.\n`" + prefix + "best {playername} {platform}`: Displays career best stats for a player (best in one game). Platform must be PC, Xbox, or PS.")
 
 
 @bot.command()
@@ -51,7 +55,7 @@ async def help(ctx, *args):
 async def stats(ctx, *args):
     if (len(args) != 2):
         prefix = await bot.get_prefix(ctx.message)
-        await ctx.send("**:stop_sign:Invalid command!** Correct usage: `" + prefix + "stats {playername} {platform}`. Platform must be either PC, Xbox or PS.")
+        await ctx.send("**:stop_sign: Invalid command!** Correct usage: `" + prefix + "stats {playername} {platform}`. Platform must be either PC, Xbox or PS.")
         return False
     else:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
@@ -69,7 +73,7 @@ async def stats(ctx, *args):
 async def weapons(ctx, *args):
     if (len(args) != 2):
         prefix = await bot.get_prefix(ctx.message)
-        await ctx.send("**:stop_sign:Invalid command!** Correct usage: `" + prefix + "weapons {playername} {platform}`. Platform must be either PC, Xbox or PS.")
+        await ctx.send("**:stop_sign: Invalid command!** Correct usage: `" + prefix + "weapons {playername} {platform}`. Platform must be either PC, Xbox or PS.")
         return False
     else:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
@@ -86,7 +90,7 @@ async def weapons(ctx, *args):
 async def best(ctx, *args):
     if (len(args) != 2):
         prefix = await bot.get_prefix(ctx.message)
-        await ctx.send("**:stop_sign:Invalid command!** Correct usage: `" + prefix + "best {playername} {platform}`. Platform must be either PC, Xbox or PS.")
+        await ctx.send("**:stop_sign: Invalid command!** Correct usage: `" + prefix + "best {playername} {platform}`. Platform must be either PC, Xbox or PS.")
         return False
     else:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
@@ -122,7 +126,9 @@ async def disablechannel(ctx, *args):
         if (len(args) != 0):
             await ctx.send("**:stop_sign: Invalid command!** Correct usage: `" + prefix + "disablechannel`. Use this command in the channel you'd like to disable the bot in!")
         else:
-            await settings.disable_channel(ctx.message.guild.id, ctx.message.channel.id)
+            disable = await settings.disable_channel(ctx.message.guild.id, ctx.message.channel.id)
+            if disable:
+                ctx.send(":white_check_mark: Bot **disabled** in channel for non-administrators.")
 
 @bot.command()
 async def enablechannel(ctx, *args):
@@ -131,8 +137,18 @@ async def enablechannel(ctx, *args):
         if (len(args) != 0):
             await ctx.send("**:stop_sign: Invalid command!** Correct usage: `" + prefix + "enablechannel`. Use this command in the channel you'd like to enable the bot in!")
         else:
-            await settings.enable_channel(ctx.message.guild.id, ctx.message.channel.id)
-    
+            enable = await settings.enable_channel(ctx.message.guild.id, ctx.message.channel.id)
+            if enable:
+                ctx.send(":white_check_mark: Bot **enabled** in channel for non-administrators.")
+
+@bot.command()
+async def listdisabledchannels(ctx, *args):
+    prefix = await bot.get_prefix(ctx.message)
+    if ctx.message.author.guild_permissions.administrator:
+        if (len(args) != 0):
+            await ctx.send("**:stop_sign: Invalid command!** Correct usage: `" + prefix + "listdisabledchannels`.")
+        else:
+            await ctx.send(await settings.get_disabled_channels(ctx.message.guild.id))
 
 #################### HELPER ####################
 
@@ -169,5 +185,5 @@ async def get_player_stats(status, playername, player_id):
 
 
 if __name__ == "__main__":
-    token = "XXXXXXXXXXXXXXXXXXX"
+    token = config('HYPERSTATS')
     bot.run(token)
