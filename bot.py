@@ -3,11 +3,11 @@ from discord.ext import commands
 from settings import Settings
 from cache import Cache
 import embed_creator
-import requests
 import json
 import os
 from decouple import config
 import time
+import aiohttp
 
 
 def determine_prefixes(bot, message):
@@ -127,30 +127,34 @@ async def listdisabledchannels(ctx, *args):
 
 #################### HELPER ####################
 
-async def find_player(status, playername, platform):      
-    r = requests.get("https://hypers.apitab.com/search/" + platform + "/" + playername)
-    if r.status_code == 200:
-        if "players" in r.json():
-            players = r.json()['players']
-            if len(players) != 0:
-                for _, player in players.items():
-                    if player['profile']['p_name'].lower() == playername.lower():
-                        return player['profile']
+async def find_player(status, playername, platform):
+    async with aiohttp.ClientSession() as session:
+        async with session.get("https://hypers.apitab.com/search/" + platform + "/" + playername) as resp:
+            status_code = resp.status
+            if status_code == 200:
+                data = await resp.json()
+                if "players" in data:
+                    players = data['players']
+                    if len(players) != 0:
+                        for _, player in players.items():
+                            if player['profile']['p_name'].lower() == playername.lower():
+                                return player['profile']
     await status.edit(content=":exclamation: Failed to find player **" + playername + "**!")
     return False
 
 
 async def get_player_stats(status, playername, player_id):
     await status.edit(content=":hourglass: Retrieving stats for player " + playername + "...")
-    r = requests.get("https://hypers.apitab.com/update/" + player_id)
-    if r.status_code == 200:
-        json_data = r.json()
-        if "found" in json_data:
-            if json_data['found']:
-                return json_data
-    else:
-        await status.edit(content=":exclamation: Failed to retrieve stats for **" + playername + "**!")
-        return False
+    async with aiohttp.ClientSession() as session:
+        async with session.get("https://hypers.apitab.com/update/" + player_id) as resp:
+            status_code = resp.status
+            if status_code == 200:
+                json_data = await resp.json()
+                if "found" in json_data:
+                    if json_data['found']:
+                        return json_data
+    await status.edit(content=":exclamation: Failed to retrieve stats for **" + playername + "**!")
+    return False
 
 
 async def determine_platform(status, args):
@@ -203,5 +207,5 @@ async def show_statistics(ctx, status, command, playername, platform):
 
 
 if __name__ == "__main__":
-    token = config('HYPERSTATS')
+    token = config('HYPERSTATSTEST')
     bot.run(token)
