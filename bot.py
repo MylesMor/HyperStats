@@ -104,6 +104,13 @@ async def disablechannel(ctx, *args):
                 await ctx.send(":stop_sign: Bot **already disabled** in channel.")
 
 @bot.command()
+@commands.check(is_disabled)
+async def about(ctx, *args):
+    embed = await embed_creator.create_about_embed()
+    await ctx.send(embed=embed)
+
+
+@bot.command()
 async def enablechannel(ctx, *args):
     prefix = await bot.get_prefix(ctx.message)
     if ctx.message.author.guild_permissions.administrator:
@@ -205,6 +212,9 @@ async def show_statistics(ctx, status, command, playername, platform):
             await cache.update_cache(stats)
         await status.edit(content="", embed=embed)
 
+@bot.event
+async def on_ready():
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=" " + str(len(bot.guilds)) + " servers."))
 
 if __name__ == "__main__":
     token = config('HYPERSTATS')

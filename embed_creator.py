@@ -118,3 +118,11 @@ async def create_weapons_embed(stats):
     embed.add_field(name="Skybreaker                          ‎ ", value="_Kills_: " + str(skybreaker['kills']) + "\n_Damage_: " + str(skybreaker['damage']) + "\n_Headshot Damage_: " + str(skybreaker['headshot_damage'])  + "\n_Headshot Accuracy_: " + str(skybreaker['hs_accuracy']) + "%" + "\n_Fusions_: " + str(skybreaker['fusions']), inline=True)
     embed.add_field(name="Protocol V                          ‎ ", value="_Kills_: " + str(protocol['kills']) + "\n_Damage_: " + str(protocol['damage']) + "\n_Headshot Damage_: " + str(protocol['headshot_damage'])  + "\n_Headshot Accuracy_: " + str(protocol['hs_accuracy']) + "%" + "\n_Fusions_: " + str(protocol['fusions']), inline=True)
     return embed
+
+async def create_about_embed():
+    embed=discord.Embed(title=" ", url="https://github.com/MylesMor/HyperStats", description="An unofficial Discord bot for Hyper Scape statistics!", color=0x36393f)
+    embed.set_author(name="HyperStats by MylesMor", url="https://github.com/MylesMor/HyperStats", icon_url="https://mylesmor.dev/images/user-icon.png")
+    embed.set_thumbnail(url="https://mylesmor.dev/resources/sunglasses.PNG")
+    embed.add_field(name="Help", value="[GitHub](https://github.com/MylesMor/HyperStats)", inline=True)
+    embed.set_footer(text="Version 1.0.0")
+    return embed
