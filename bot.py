@@ -46,9 +46,9 @@ async def is_disabled(ctx):
 async def help(ctx, *args):
     prefix = await bot.get_prefix(ctx.message)
     if ctx.message.author.guild_permissions.administrator:
-        await ctx.send("<><><><><><><> :grey_question: HyperStats Help :grey_question: <><><><><><><>\n\n Prefix: `" + prefix + "`\n\n`" + prefix + "setprefix {prefix}`: Changes the bot prefix **(admin only)**.\n`" + prefix + "disablechannel`: Disables the bot in the channel this command is used in for non-administrators **(admin only)**.\n`" + prefix + "enablechannel`: Enables the bot in the channel this command is used in for non-administrators **(admin only)**.\n\n`" + prefix + "help`: Displays this menu.\n\nFor all of the below commands, platform must be either be empty for PC, or one of `PC`, `Xbox` or `PS`.\n\n`" + prefix + "stats {playername} {platform}`: Displays player stats.\n`" + prefix + "weapons {playername} {platform}`: Displays weapon stats for a player.\n`" + prefix + "hacks {playername} {platform}`: Displays hack stats for a player.\n`" + prefix + "best {playername} {platform}`: Displays career best stats for a player (best in one game).")
+        await ctx.send("<><><><><><><> :grey_question: HyperStats Help :grey_question: <><><><><><><>\n\n Prefix: `" + prefix + "`\n\n`" + prefix + "setprefix {prefix}`: Changes the bot prefix **(admin only)**.\n`" + prefix + "disablechannel`: Disables the bot in the channel this command is used in for non-administrators **(admin only)**.\n`" + prefix + "enablechannel`: Enables the bot in the channel this command is used in for non-administrators **(admin only)**.\n\n`" + prefix + "help`: Displays this menu.\n`" + prefix + "about`: Displays information about this bot.\n\nFor all of the below commands, platform must be either be empty for PC, or one of `PC`, `Xbox` or `PS`.\n\n`" + prefix + "stats {playername} {platform}`: Displays player stats.\n`" + prefix + "weapons {playername} {platform}`: Displays weapon stats for a player.\n`" + prefix + "hacks {playername} {platform}`: Displays hack stats for a player.\n`" + prefix + "best {playername} {platform}`: Displays career best stats for a player (best in one game).")
     else:
-        await ctx.send("<><><><><><><> :grey_question: HyperStats Help :grey_question: <><><><><><><>\n\n Prefix: " + prefix + "\n\n`" + prefix + "help`: Displays this menu.\n\nFor all of the below commands, platform must be either be empty for PC, or one of `PC`, `Xbox` or `PS`.\n\n`" + prefix + "stats {playername} {platform}`: Displays player stats.\n`" + prefix + "weapons {playername} {platform}`: Displays weapon stats for a player.\n`" + prefix + "hacks {playername} {platform}`: Displays hack stats for a player.\n`" + prefix + "best {playername} {platform}`: Displays career best stats for a player (best in one game).")
+        await ctx.send("<><><><><><><> :grey_question: HyperStats Help :grey_question: <><><><><><><>\n\n Prefix: " + prefix + "\n\n`" + prefix + "help`: Displays this menu.\n`" + prefix + "about`: Displays information about this bot.\n\nFor all of the below commands, platform must be either be empty for PC, or one of `PC`, `Xbox` or `PS`.\n\n`" + prefix + "stats {playername} {platform}`: Displays player stats.\n`" + prefix + "weapons {playername} {platform}`: Displays weapon stats for a player.\n`" + prefix + "hacks {playername} {platform}`: Displays hack stats for a player.\n`" + prefix + "best {playername} {platform}`: Displays career best stats for a player (best in one game).")
 
 
 @bot.command()
@@ -214,7 +214,12 @@ async def show_statistics(ctx, status, command, playername, platform):
 
 @bot.event
 async def on_ready():
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=" " + str(len(bot.guilds)) + " servers."))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=" " + str(len(bot.guilds)) + " servers | $help"))
+
+@client.event
+async def on_guild_join(guild):
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=" " + str(len(bot.guilds)) + " servers | $help"))
+
 
 if __name__ == "__main__":
     token = config('HYPERSTATS')

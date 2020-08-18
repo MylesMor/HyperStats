@@ -105,7 +105,7 @@ async def create_weapons_embed(stats):
     protocol = stats['data']['weapons']['Protocol V']
 
     embed=discord.Embed(title="", color=0x36393f)
-    embed.set_author(name=stats['player']['p_name'] + "'s Weapons Statistics", icon_url="https://mylesmor.dev/images/user-icon.png")
+    embed.set_author(name=stats['player']['p_name'] + "'s Weapons Statistics", icon_url="https://mylesmor.dev/images/user-icon.png")#, description="[See" + stats['p_name'] + "'s stats on tabstats.com]()")
     embed.add_field(name="Dragonfly                           ‎ ", value="_Kills_: " + str(dragonfly['kills']) + "\n_Damage_: " + str(dragonfly['damage']) + "\n_Headshot Damage_: " + str(dragonfly['headshot_damage'])  + "\n_Headshot Accuracy_: " + str(dragonfly['hs_accuracy']) + "%" + "\n_Fusions_: " + str(dragonfly['fusions']), inline=True)
     embed.add_field(name="Mammoth MK1                         ‎ ", value="_Kills_: " + str(mammoth['kills']) + "\n_Damage_: " + str(mammoth['damage']) + "\n_Headshot Damage_: " + str(mammoth['headshot_damage'])  + "             ‎\n_Headshot Accuracy_: " + str(mammoth['hs_accuracy']) + "%" + "\n_Fusions_: " + str(mammoth['fusions']), inline=True)
     embed.add_field(name="Ripper                              ‎ ", value="_Kills_: " + str(ripper['kills']) + "\n_Damage_: " + str(ripper['damage']) + "\n_Headshot Damage_:" + str(ripper['headshot_damage'])  + "‎‎‎             ‎‎‎‎\n_Headshot Accuracy_: " + str(ripper['hs_accuracy']) + "%" + "\n_Fusions_: " + str(ripper['fusions']), inline=True)
