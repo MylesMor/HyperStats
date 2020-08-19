@@ -1,19 +1,19 @@
 import discord
 from discord.ext import commands
 from settings import Settings
-from cache import Cache
+import statistics
 import embed_creator
 import json
 import os
 from decouple import config
 import time
-import aiohttp
+import threading
+
 
 
 def determine_prefixes(bot, message):
     return settings.get_prefix(message.guild.id)
 
-cache = Cache()
 settings = Settings()
 client = discord.Client()
 bot = commands.Bot(command_prefix=determine_prefixes)
@@ -45,58 +45,79 @@ async def is_disabled(ctx):
 @commands.check(is_disabled)
 async def help(ctx, *args):
     prefix = await bot.get_prefix(ctx.message)
-    if ctx.message.author.guild_permissions.administrator:
-        await ctx.send("<><><><><><><> :grey_question: HyperStats Help :grey_question: <><><><><><><>\n\n Prefix: `" + prefix + "`\n\n`" + prefix + "setprefix {prefix}`: Changes the bot prefix **(admin only)**.\n`" + prefix + "disablechannel`: Disables the bot in the channel this command is used in for non-administrators **(admin only)**.\n`" + prefix + "enablechannel`: Enables the bot in the channel this command is used in for non-administrators **(admin only)**.\n\n`" + prefix + "help`: Displays this menu.\n`" + prefix + "about`: Displays information about this bot.\n\nFor all of the below commands, platform must be either be empty for PC, or one of `PC`, `Xbox` or `PS`.\n\n`" + prefix + "stats {playername} {platform}`: Displays player stats.\n`" + prefix + "weapons {playername} {platform}`: Displays weapon stats for a player.\n`" + prefix + "hacks {playername} {platform}`: Displays hack stats for a player.\n`" + prefix + "best {playername} {platform}`: Displays career best stats for a player (best in one game).")
-    else:
-        await ctx.send("<><><><><><><> :grey_question: HyperStats Help :grey_question: <><><><><><><>\n\n Prefix: " + prefix + "\n\n`" + prefix + "help`: Displays this menu.\n`" + prefix + "about`: Displays information about this bot.\n\nFor all of the below commands, platform must be either be empty for PC, or one of `PC`, `Xbox` or `PS`.\n\n`" + prefix + "stats {playername} {platform}`: Displays player stats.\n`" + prefix + "weapons {playername} {platform}`: Displays weapon stats for a player.\n`" + prefix + "hacks {playername} {platform}`: Displays hack stats for a player.\n`" + prefix + "best {playername} {platform}`: Displays career best stats for a player (best in one game).")
+    user_help_string = ":grey_question: HyperStats Help :grey_question:\n\n Prefix: `" + prefix + "`"
+    if ctx.message.author.guild_permissions.administrator: 
+        user_help_string += "\n\n`" + prefix + "setprefix {prefix}`: Changes the bot prefix **(admin only)**."
+        user_help_string += "\n`" + prefix + "disablechannel`: Disables the bot in the channel this command is used in for non-administrators **(admin only)**."
+        user_help_string += "\n`" + prefix + "enablechannel`: Enables the bot in the channel this command is used in for non-administrators **(admin only)**."
+        user_help_string += "\n`" + prefix + "listdisabledchannels`: Lists all disabled channels. **(admin only)**."
+    user_help_string += "\n\n`" + prefix + "help`: Displays this menu."
+    user_help_string += "\n`" + prefix + "about`: Displays information about this bot."
+    user_help_string += "\n`" + prefix + "about`: Displays information about this bot."
+    user_help_string += "\n`" + prefix + "link {playername} {platform}`: Links your discord account to your in-game account. Once complete, you can use the below commands without any arguments to view your own stats."
+    user_help_string += "\n`" + prefix + "unlink`: Unlinks your in-game account from your discord account."
+    user_help_string += "\n\nFor all of the below commands, platform must be either be empty for PC, or one of `PC`, `Xbox` or `PS`. You can also use `" + prefix + "link {playername} {platform}` to use the below commands to view your own stats without any arguments."
+    user_help_string += "\n\n`" + prefix + "stats {playername} {platform}`: Displays player stats."
+    user_help_string += "\n`" + prefix + "weapons {playername} {platform}`: Displays weapon stats for a player."
+    user_help_string += "\n`" + prefix + "hacks {playername} {platform}`: Displays hack stats for a player."
+    user_help_string += "\n`" + prefix + "hacks {playername} {platform}`: Displays hack stats for a player."
+    user_help_string += "\n`" + prefix + "best {playername} {platform}`: Displays career best stats for a player (best in one game)."
+    await ctx.send(user_help_string)
 
 
 @bot.command()
 @commands.check(is_disabled)
 async def stats(ctx, *args):
-    if (config('APIDOWN') == "true"):
-        await ctx.send(":exclamation: The API may be unavailable, please try again later.")
+    await api_down(ctx)
+    linked = await statistics.is_linked(settings, ctx, args, "stats")
+    if linked:
+        return
     valid = await check_stats_commands(ctx, "stats", args)
     if valid:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
-        platform = await determine_platform(status, args)
-        await show_statistics(ctx, status, "stats", args[0], platform)
-
+        platform = await statistics.determine_platform(status, args)
+        await statistics.show_statistics(ctx, status, "stats", args[0], platform)
 
 
 @bot.command()
 @commands.check(is_disabled)
 async def weapons(ctx, *args):
-    if (config('APIDOWN') == "true"):
-        await ctx.send(":exclamation: The API may be unavailable, please try again later.")
+    await api_down(ctx)
+    linked = await statistics.is_linked(settings, ctx, args, "weapons")
+    if linked:
+        return
     valid = await check_stats_commands(ctx, "weapons", args)
     if valid:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
-        platform = await determine_platform(status, args)
-        await show_statistics(ctx, status, "weapons", args[0], platform)
+        platform = await statistics.determine_platform(status, args)
+        await statistics.show_statistics(ctx, status, "weapons", args[0], platform)
 
 
 @bot.command()
 @commands.check(is_disabled)
 async def best(ctx, *args):
-    if (config('APIDOWN') == "true"):
-        await ctx.send(":exclamation: The API may be unavailable, please try again later.")
+    await api_down(ctx)
+    linked = await statistics.is_linked(settings, ctx, args, "best")
+    if linked:
+        return
     valid = await check_stats_commands(ctx, "best", args)
     if valid:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
-        platform = await determine_platform(status, args)
-        await show_statistics(ctx, status, "best", args[0], platform)
+        platform = await statistics.determine_platform(status, args)
+        await statistics.show_statistics(ctx, status, "best", args[0], platform)
 
 @bot.command()
 @commands.check(is_disabled)
 async def hacks(ctx, *args):
-    if (config('APIDOWN') == "true"):
-        await ctx.send(":exclamation: The API may be unavailable, please try again later.")
+    await api_down(ctx)
+    linked = await statistics.is_linked(settings, ctx, args, "hacks")
+    if linked:
+        return
     valid = await check_stats_commands(ctx, "hacks", args)
     if valid:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
-        platform = await determine_platform(status, args)
-        await show_statistics(ctx, status, "hacks", args[0], platform)
+        platform = await statistics.determine_platform(status, args)
+        await statistics.show_statistics(ctx, status, "hacks", args[0], platform)
 
 @bot.command()
 async def disablechannel(ctx, *args):
@@ -140,95 +161,40 @@ async def listdisabledchannels(ctx, *args):
         else:
             await ctx.send(await settings.get_disabled_channels(ctx.message.guild.id))
 
-#################### HELPER ####################
-
-async def find_player(status, playername, platform):
-    async with aiohttp.ClientSession() as session:
-        async with session.get("https://hypers.apitab.com/search/" + platform + "/" + playername) as resp:
-            status_code = resp.status
-            print(status_code)
-            if status_code == 200:
-                data = await resp.json()
-                if "players" in data:
-                    players = data['players']
-                    if len(players) != 0:
-                        for _, player in players.items():
-                            if player['profile']['p_name'].lower() == playername.lower():
-                                return player['profile']
-            else:
-                await status.edit(content=":exclamation: Failed to find player **" + playername + "**! The API is unavailable, please try again later.")
-                return False
-    await status.edit(content=":exclamation: Failed to find player **" + playername + "**!")
-    return False
-
-
-async def get_player_stats(status, playername, player_id):
-    await status.edit(content=":hourglass: Retrieving stats for player " + playername + "...")
-    async with aiohttp.ClientSession() as session:
-        async with session.get("https://hypers.apitab.com/update/" + player_id) as resp:
-            status_code = resp.status
-            if status_code == 200:
-                json_data = await resp.json()
-                if "found" in json_data:
-                    if json_data['found']:
-                        return json_data
-            else:
-                await status.edit(content=":exclamation: Failed to find player **" + playername + "**! The API is unavailable, please try again later.")
-                return False
-    await status.edit(content=":exclamation: Failed to retrieve stats for **" + playername + "**!")
-    return False
-
-
-async def determine_platform(status, args):
-    if len(args) == 1:
-        return "uplay"
-    elif len(args) == 2:
-        platform = args[1]
-        if platform.lower() != "pc" and platform.lower() != "xbox" and platform.lower() != "ps":
-            await status.edit(content=":exclamation: **Invalid platform!** Platform must be `PC`, `Xbox` or `PS`.")
-            return False
-        if platform.lower() == "pc":
-            platform = "uplay"
-        elif platform.lower() == "xbox":
-            platform = "xbl"
-        elif platform.lower() == "ps":
-            platform = "psn"
-        return platform
-
-async def manage_stats_commands(ctx, status, playername, platform):
-    id = await find_player(status, playername, platform)
-    if id:
-        stats = await get_player_stats(status, id["p_name"], id["p_id"])
-        return stats
-
-
-async def check_stats_commands(ctx, command, args):
+@bot.command()
+@commands.check(is_disabled)
+async def link(ctx, *args):
+    await api_down(ctx)
     prefix = await bot.get_prefix(ctx.message)
-    if (len(args) != 1 and len(args) != 2):
-            await ctx.send("**:stop_sign: Invalid command!** Correct usage: `" + prefix + command + " {playername} {platform}`. Platform must either be `PC`, `Xbox` or `PS` (or blank for PC).")
-            return False
-    return True
-
-async def show_statistics(ctx, status, command, playername, platform):
-    cached = await cache.check_cache(playername, platform)
-    if cached is None:
-        stats = await manage_stats_commands(ctx, status,playername, platform)
-        if stats is not None:
-            await cache.add_player_to_cache(stats)
-            await cache.update_cache(stats)
-        else:
-            print("Retreiving stats failed. Is the API down?")
+    already_linked = await settings.get_linked_user(ctx.message.author.id)
+    if already_linked is not None:
+        await ctx.send(":stop_sign: This account is already linked to **" + already_linked['p_name'] + "**!")
+        return False
+    if (len(args) != 2 and len(args) != 1):
+        await ctx.send("**:stop_sign: Invalid command!** Correct usage: `" + prefix + "link {playername} {platform}`. Platform must either be `PC`, `Xbox` or `PS` (or blank for PC).")
+        return False
+    status = await ctx.send(":hourglass: Attempting to link player " + args[0] + "...")
+    platform = await statistics.determine_platform(status, args)
+    id = await statistics.find_player(status, args[0], platform)
+    if not id:
+        await status.edit(content=":exclamation: Failed to find player **" + args[0] + "**! Link failed!")
     else:
-        stats = cached
-    if stats:
-        embed = await embed_creator.create_embed(command, stats)
-        if cached is not None:
-            cached_string = await cache.get_update_string(playername.lower(), platform)
-            await status.edit(content=cached_string, embed=embed)
-            return
-        else:
-            await cache.update_cache(stats)
-        await status.edit(content="", embed=embed)
+        await settings.add_link(ctx.message.author.id, id["p_id"], id["p_name"], id['p_platform'])
+        await status.edit(content=":white_check_mark: Your Discord account has been linked to **" + id["p_name"] + "**! You can now use the commands without the extra parameters!")
+
+@bot.command()
+@commands.check(is_disabled)
+async def unlink(ctx, *args):
+    already_linked = await settings.get_linked_user(ctx.message.author.id)
+    if already_linked is not None:
+        await ctx.send(":stop_sign: Unlinked **" + already_linked['p_name'] + "** from your discord account!")
+        await settings.remove_link(ctx.message.author.id)
+        return True
+    else:
+        await ctx.send(":stop_sign: No account linked!")
+        return False
+
+#################### HELPER ####################
 
 @bot.event
 async def on_ready():
@@ -238,7 +204,29 @@ async def on_ready():
 async def on_guild_join(guild):
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=" " + str(len(bot.guilds)) + " servers | $help"))
 
+async def check_stats_commands(ctx, command, args):
+    prefix = await bot.get_prefix(ctx.message)
+    if (len(args) != 1 and len(args) != 2):
+            await ctx.send("**:stop_sign: Invalid command!** Correct usage: `" + prefix + command + " {playername} {platform}`. Platform must either be `PC`, `Xbox` or `PS` (or blank for PC).")
+            return False
+    return True
+
+async def api_down(ctx):
+    if (config('APIDOWN') == "true"):
+        await ctx.send(":exclamation: The API may be unavailable, please try again later.")
+
+
+def listen_for_commands():
+    while True:
+        command = input("Enter command: ")
+        if (command.lower() == "save"):
+            settings.save_settings()
+            print("Settings saved!")
+
+
+
 
 if __name__ == "__main__":
-    token = config('HYPERSTATS')
+    token = config('HYPERSTATSTEST')
+    threading.Thread(target=listen_for_commands).start()
     bot.run(token)

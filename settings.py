@@ -6,6 +6,7 @@ class Settings():
     def __init__(self):
         self.check_for_file()
         self.settings = self.get_settings()
+        self.links = self.get_links()
         self.time_between_saves = 300
         self.save_settings()
     
@@ -13,19 +14,35 @@ class Settings():
         if not os.path.isfile("guilds.json"):
             with open("guilds.json", 'w+') as f:
                 f.write("{}")
+        if not os.path.isfile("links.json"):
+            with open("links.json", 'w+') as f:
+                    f.write("{}")
 
 
     def get_settings(self):
         with open("guilds.json", 'r') as f:
             return json.load(f)
+
+    def get_links(self):
+            with open("links.json", 'r') as f:
+                return json.load(f)
         
+    async def add_link(self, user_id, player_id, playername, platform):
+        self.links[str(user_id)] = {"p_name": playername, "p_id": player_id, "p_platform": platform}
+
+    async def remove_link(self, user_id):
+        self.links.pop(str(user_id))
+
+    async def get_linked_user(self, user_id):
+        if str(user_id) in self.links:
+            return self.links[str(user_id)]
+        return None
+
 
 
     async def set_prefix(self, guild_id, prefix):
         await self.add_guild_to_settings(guild_id)
-        print(self.settings)
         self.settings[str(guild_id)]['prefix'] = prefix
-        print(self.settings)
         return True
     
 
@@ -68,5 +85,9 @@ class Settings():
         threading.Timer(self.time_between_saves, self.save_settings).start()
         with open("guilds.json", 'w') as f:
             json.dump(self.settings, f)
+        with open("links.json", 'w') as f:
+            json.dump(self.links, f)
+            
+
 
 
