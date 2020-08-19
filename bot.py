@@ -53,13 +53,11 @@ async def help(ctx, *args):
         user_help_string += "\n`" + prefix + "listdisabledchannels`: Lists all disabled channels. **(admin only)**."
     user_help_string += "\n\n`" + prefix + "help`: Displays this menu."
     user_help_string += "\n`" + prefix + "about`: Displays information about this bot."
-    user_help_string += "\n`" + prefix + "about`: Displays information about this bot."
     user_help_string += "\n`" + prefix + "link {playername} {platform}`: Links your discord account to your in-game account. Once complete, you can use the below commands without any arguments to view your own stats."
     user_help_string += "\n`" + prefix + "unlink`: Unlinks your in-game account from your discord account."
     user_help_string += "\n\nFor all of the below commands, platform must be either be empty for PC, or one of `PC`, `Xbox` or `PS`. You can also use `" + prefix + "link {playername} {platform}` to use the below commands to view your own stats without any arguments."
     user_help_string += "\n\n`" + prefix + "stats {playername} {platform}`: Displays player stats."
     user_help_string += "\n`" + prefix + "weapons {playername} {platform}`: Displays weapon stats for a player."
-    user_help_string += "\n`" + prefix + "hacks {playername} {platform}`: Displays hack stats for a player."
     user_help_string += "\n`" + prefix + "hacks {playername} {platform}`: Displays hack stats for a player."
     user_help_string += "\n`" + prefix + "best {playername} {platform}`: Displays career best stats for a player (best in one game)."
     await ctx.send(user_help_string)
