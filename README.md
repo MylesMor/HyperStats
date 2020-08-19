@@ -14,10 +14,10 @@ To see all commands, type `$help` or look at the Commands section below.
 The user must have administrator permissions in a server to use these commands.
 
 ```
-$setprefix {prefix}     # Changes the bot prefix (admin only).
+$setprefix {prefix}     # Changes the bot prefix.
 $disablechannel         # Disables the bot in the channel this command is used in for non-administrators.
 $enablechannel          # Enables the bot in the channel this command is used in for non-administrators.
-$listdisabledchannels   # Lists all disabled channels. (admin only).
+$listdisabledchannels   # Lists all disabled channels.
 ```
 ### General Commands
 
