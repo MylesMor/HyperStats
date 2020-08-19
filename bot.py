@@ -240,5 +240,5 @@ async def on_guild_join(guild):
 
 
 if __name__ == "__main__":
-    token = config('HYPERSTATSTEST')
+    token = config('HYPERSTATS')
     bot.run(token)
