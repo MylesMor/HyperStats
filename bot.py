@@ -54,6 +54,8 @@ async def help(ctx, *args):
 @bot.command()
 @commands.check(is_disabled)
 async def stats(ctx, *args):
+    if (config('APIDOWN') == "true"):
+        await ctx.send(":exclamation: The API may be unavailable, please try again later.")
     valid = await check_stats_commands(ctx, "stats", args)
     if valid:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
@@ -65,6 +67,8 @@ async def stats(ctx, *args):
 @bot.command()
 @commands.check(is_disabled)
 async def weapons(ctx, *args):
+    if (config('APIDOWN') == "true"):
+        await ctx.send(":exclamation: The API may be unavailable, please try again later.")
     valid = await check_stats_commands(ctx, "weapons", args)
     if valid:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
@@ -75,6 +79,8 @@ async def weapons(ctx, *args):
 @bot.command()
 @commands.check(is_disabled)
 async def best(ctx, *args):
+    if (config('APIDOWN') == "true"):
+        await ctx.send(":exclamation: The API may be unavailable, please try again later.")
     valid = await check_stats_commands(ctx, "best", args)
     if valid:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
@@ -84,6 +90,8 @@ async def best(ctx, *args):
 @bot.command()
 @commands.check(is_disabled)
 async def hacks(ctx, *args):
+    if (config('APIDOWN') == "true"):
+        await ctx.send(":exclamation: The API may be unavailable, please try again later.")
     valid = await check_stats_commands(ctx, "hacks", args)
     if valid:
         status = await ctx.send(":hourglass: Finding player " + args[0] + "...")
@@ -138,6 +146,7 @@ async def find_player(status, playername, platform):
     async with aiohttp.ClientSession() as session:
         async with session.get("https://hypers.apitab.com/search/" + platform + "/" + playername) as resp:
             status_code = resp.status
+            print(status_code)
             if status_code == 200:
                 data = await resp.json()
                 if "players" in data:
@@ -146,6 +155,9 @@ async def find_player(status, playername, platform):
                         for _, player in players.items():
                             if player['profile']['p_name'].lower() == playername.lower():
                                 return player['profile']
+            else:
+                await status.edit(content=":exclamation: Failed to find player **" + playername + "**! The API is unavailable, please try again later.")
+                return False
     await status.edit(content=":exclamation: Failed to find player **" + playername + "**!")
     return False
 
@@ -160,6 +172,9 @@ async def get_player_stats(status, playername, player_id):
                 if "found" in json_data:
                     if json_data['found']:
                         return json_data
+            else:
+                await status.edit(content=":exclamation: Failed to find player **" + playername + "**! The API is unavailable, please try again later.")
+                return False
     await status.edit(content=":exclamation: Failed to retrieve stats for **" + playername + "**!")
     return False
 
@@ -198,8 +213,11 @@ async def show_statistics(ctx, status, command, playername, platform):
     cached = await cache.check_cache(playername, platform)
     if cached is None:
         stats = await manage_stats_commands(ctx, status,playername, platform)
-        await cache.add_player_to_cache(stats)
-        await cache.update_cache(stats)
+        if stats is not None:
+            await cache.add_player_to_cache(stats)
+            await cache.update_cache(stats)
+        else:
+            print("Retreiving stats failed. Is the API down?")
     else:
         stats = cached
     if stats:
@@ -222,5 +240,5 @@ async def on_guild_join(guild):
 
 
 if __name__ == "__main__":
-    token = config('HYPERSTATS')
+    token = config('HYPERSTATSTEST')
     bot.run(token)
