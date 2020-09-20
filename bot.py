@@ -50,7 +50,7 @@ async def help(ctx, *args):
         user_help_string += "\n\n`" + prefix + "setprefix {prefix}`: Changes the bot prefix **(admin only)**."
         user_help_string += "\n`" + prefix + "disablechannel`: Disables the bot in the channel this command is used in for non-administrators **(admin only)**."
         user_help_string += "\n`" + prefix + "enablechannel`: Enables the bot in the channel this command is used in for non-administrators **(admin only)**."
-        user_help_string += "\n`" + prefix + "listdisabledchannels`: Lists all disabled channels. **(admin only)**."
+        user_help_string += "\n`" + prefix + "listdisabledchannels`: Lists all disabled channels **(admin only)**."
     user_help_string += "\n\n`" + prefix + "help`: Displays this menu."
     user_help_string += "\n`" + prefix + "about`: Displays information about this bot."
     user_help_string += "\n`" + prefix + "link {playername} {platform}`: Links your discord account to your in-game account. Once complete, you can use the below commands without any arguments to view your own stats."
